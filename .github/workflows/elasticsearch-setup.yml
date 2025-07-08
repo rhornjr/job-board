@@ -1,0 +1,75 @@
+name: Elasticsearch Infrastructure Setup
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - staging
+        - prod
+
+jobs:
+  deploy-infrastructure:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: package-lock.json
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    
+    - name: Deploy Elasticsearch infrastructure
+      run: |
+        npx cdk deploy --require-approval never
+      env:
+        ENVIRONMENT: ${{ github.event.inputs.environment }}
+    
+    - name: Get Elasticsearch endpoint
+      run: |
+        ES_ENDPOINT=$(aws cloudformation describe-stacks \
+          --stack-name job-board-elasticsearch-${{ github.event.inputs.environment }} \
+          --query 'Stacks[0].Outputs[?OutputKey==`ElasticsearchEndpoint`].OutputValue' \
+          --output text)
+        echo "ES_ENDPOINT=$ES_ENDPOINT" >> $GITHUB_ENV
+    
+    - name: Test Elasticsearch connection
+      run: |
+        curl -f "${{ env.ES_ENDPOINT }}/_cluster/health" || echo "Elasticsearch health check failed"
+    
+    - name: Comment infrastructure info
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `🏗️ **Elasticsearch Infrastructure Deployed!**
+          
+          **Environment:** ${{ github.event.inputs.environment }}
+          **Elasticsearch Endpoint:** ${{ env.ES_ENDPOINT }}
+          **Region:** us-east-1
+          
+          Test the connection: \`curl ${{ env.ES_ENDPOINT }}/_cluster/health\`
+          
+          [View CloudFormation Stack](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/stackinfo?stackId=job-board-elasticsearch-${{ github.event.inputs.environment }})`
+          }) 
