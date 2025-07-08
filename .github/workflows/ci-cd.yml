@@ -38,7 +38,7 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && false  # Disabled until AWS credentials are configured
     
     steps:
     - uses: actions/checkout@v3
