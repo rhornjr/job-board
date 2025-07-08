@@ -1,0 +1,27 @@
+{
+  "name": "job-board-infrastructure",
+  "version": "1.0.0",
+  "description": "Infrastructure as Code for Job Board using AWS CDK",
+  "main": "infrastructure/app.js",
+  "scripts": {
+    "build": "cdk build",
+    "deploy": "cdk deploy",
+    "destroy": "cdk destroy",
+    "diff": "cdk diff",
+    "synth": "cdk synth",
+    "bootstrap": "cdk bootstrap"
+  },
+  "devDependencies": {
+    "aws-cdk": "^2.124.0",
+    "aws-cdk-lib": "^2.124.0",
+    "constructs": "^10.3.0",
+    "typescript": "^5.3.3",
+    "@types/node": "^20.10.0"
+  },
+  "dependencies": {
+    "@aws-cdk/aws-elasticsearch-alpha": "^2.124.0-alpha.0",
+    "@aws-cdk/aws-iam": "^2.124.0",
+    "@aws-cdk/aws-ec2": "^2.124.0",
+    "@aws-cdk/aws-logs": "^2.124.0"
+  }
+} 

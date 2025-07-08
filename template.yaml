@@ -1,0 +1,161 @@
+# This file is essentially the "blueprint" that AWS SAM uses to create and manage your serverless infrastructure.
+# When you run sam deploy, it reads this template and creates all the necessary AWS resources (Lambda functions,
+# API Gateway, IAM roles, etc.) according to these specifications.
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  job-board
+
+  Job Board API using AWS SAM with Elasticsearch integration
+  
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 30
+    Environment:
+      Variables:
+        NODE_ENV: production
+        ELASTICSEARCH_ENDPOINT: !Sub "https://${ElasticsearchDomain}.${AWS::Region}.es.amazonaws.com"
+        ELASTICSEARCH_USERNAME: "elastic"
+        ELASTICSEARCH_PASSWORD: "changeme"  # In production, use AWS Secrets Manager
+
+Resources:
+  JobBoardFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: hello-world/
+      Handler: app.lambdaHandler
+      Runtime: nodejs22.x
+      Architectures:
+        - x86_64
+      MemorySize: 512
+      Environment:
+        Variables:
+          ELASTICSEARCH_ENDPOINT: !Sub "https://${ElasticsearchDomain}.${AWS::Region}.es.amazonaws.com"
+      Events:
+        Root:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+        GetJobs:
+          Type: Api
+          Properties:
+            Path: /jobs
+            Method: get
+        SearchJobs:
+          Type: Api
+          Properties:
+            Path: /jobs/search
+            Method: get
+        GetJobAggregations:
+          Type: Api
+          Properties:
+            Path: /jobs/aggregations
+            Method: get
+        CreateJob:
+          Type: Api
+          Properties:
+            Path: /jobs
+            Method: post
+        HealthCheck:
+          Type: Api
+          Properties:
+            Path: /health
+            Method: get
+        ElasticsearchHealthCheck:
+          Type: Api
+          Properties:
+            Path: /elasticsearch/health
+            Method: get
+        CatchAll:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+
+  # Elasticsearch Domain (simplified for demo - in production use CDK)
+  ElasticsearchDomain:
+    Type: AWS::Elasticsearch::Domain
+    Properties:
+      DomainName: !Sub "job-board-${AWS::StackName}"
+      ElasticsearchVersion: "7.10"
+      ElasticsearchClusterConfig:
+        InstanceType: "t3.small.elasticsearch"
+        InstanceCount: 1
+        ZoneAwarenessEnabled: false
+      EBSOptions:
+        EBSEnabled: true
+        VolumeType: "gp3"
+        VolumeSize: 20
+      AccessPolicies:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: "*"
+            Action: "es:*"
+            Resource: !Sub "${ElasticsearchDomain}/*"
+      EncryptionAtRestOptions:
+        Enabled: true
+      NodeToNodeEncryptionOptions:
+        Enabled: true
+      DomainEndpointOptions:
+        EnforceHTTPS: true
+      LogPublishingOptions:
+        ES_APPLICATION_LOGS:
+          CloudWatchLogsLogGroupArn: !GetAtt ElasticsearchLogGroup.Arn
+          Enabled: true
+          LogType: ES_APPLICATION_LOGS
+
+  # CloudWatch Log Group for Elasticsearch
+  ElasticsearchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/elasticsearch/${ElasticsearchDomain}"
+      RetentionInDays: 7
+
+  # IAM Role for Lambda to access Elasticsearch
+  JobBoardFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ElasticsearchAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - es:ESHttpGet
+                  - es:ESHttpPut
+                  - es:ESHttpPost
+                  - es:ESHttpDelete
+                  - es:ESHttpHead
+                Resource: !Sub "${ElasticsearchDomain}/*"
+
+Outputs:
+  JobBoardApi:
+    Description: "API Gateway endpoint URL for Prod stage for Job Board function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  JobBoardFunction:
+    Description: "Job Board Lambda Function ARN"
+    Value: !GetAtt JobBoardFunction.Arn
+  JobBoardFunctionIamRole:
+    Description: "Implicit IAM Role created for Job Board function"
+    Value: !GetAtt JobBoardFunctionRole.Arn
+  ElasticsearchDomainEndpoint:
+    Description: "Elasticsearch Domain Endpoint"
+    Value: !Sub "https://${ElasticsearchDomain}.${AWS::Region}.es.amazonaws.com"
+  ElasticsearchDomainName:
+    Description: "Elasticsearch Domain Name"
+    Value: !Ref ElasticsearchDomain
