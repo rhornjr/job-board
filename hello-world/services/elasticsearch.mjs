@@ -1,7 +1,7 @@
 import { Client } from '@elastic/elasticsearch';
 
 class ElasticsearchService {
-  constructor() {
+  constructor () {
     this.client = new Client({
       node: process.env.ELASTICSEARCH_ENDPOINT || 'http://localhost:9200',
       auth: {
@@ -12,11 +12,11 @@ class ElasticsearchService {
         rejectUnauthorized: false // For development - should be true in production
       }
     });
-    
+
     this.indexName = 'jobs';
   }
 
-  async initializeIndex() {
+  async initializeIndex () {
     try {
       const indexExists = await this.client.indices.exists({
         index: this.indexName
@@ -29,39 +29,39 @@ class ElasticsearchService {
             mappings: {
               properties: {
                 id: { type: 'keyword' },
-                title: { 
+                title: {
                   type: 'text',
                   analyzer: 'english',
                   fields: {
                     keyword: { type: 'keyword' }
                   }
                 },
-                company: { 
+                company: {
                   type: 'text',
                   analyzer: 'standard',
                   fields: {
                     keyword: { type: 'keyword' }
                   }
                 },
-                location: { 
+                location: {
                   type: 'text',
                   analyzer: 'standard',
                   fields: {
                     keyword: { type: 'keyword' }
                   }
                 },
-                description: { 
+                description: {
                   type: 'text',
                   analyzer: 'english'
                 },
                 salary: { type: 'keyword' },
                 type: { type: 'keyword' },
                 postedDate: { type: 'date' },
-                requirements: { 
+                requirements: {
                   type: 'keyword',
                   analyzer: 'standard'
                 },
-                skills: { 
+                skills: {
                   type: 'keyword',
                   analyzer: 'standard'
                 },
@@ -84,7 +84,7 @@ class ElasticsearchService {
             }
           }
         });
-        
+
         console.log(`Created index: ${this.indexName}`);
       }
     } catch (error) {
@@ -93,7 +93,7 @@ class ElasticsearchService {
     }
   }
 
-  async indexJob(job) {
+  async indexJob (job) {
     try {
       const document = {
         ...job,
@@ -115,7 +115,7 @@ class ElasticsearchService {
     }
   }
 
-  async searchJobs(query, filters = {}) {
+  async searchJobs (query, filters = {}) {
     try {
       const searchBody = {
         query: {
@@ -136,7 +136,7 @@ class ElasticsearchService {
       if (query) {
         searchBody.query.bool.must.push({
           multi_match: {
-            query: query,
+            query,
             fields: ['title^3', 'company^2', 'description', 'requirements', 'skills'],
             type: 'best_fields',
             fuzziness: 'AUTO'
@@ -205,7 +205,7 @@ class ElasticsearchService {
     }
   }
 
-  async getJobSuggestions(query, field = 'title') {
+  async getJobSuggestions (query, field = 'title') {
     try {
       const response = await this.client.search({
         index: this.indexName,
@@ -230,7 +230,7 @@ class ElasticsearchService {
     }
   }
 
-  async updateJob(jobId, updates) {
+  async updateJob (jobId, updates) {
     try {
       const document = {
         ...updates,
@@ -253,7 +253,7 @@ class ElasticsearchService {
     }
   }
 
-  async deleteJob(jobId) {
+  async deleteJob (jobId) {
     try {
       await this.client.delete({
         index: this.indexName,
@@ -268,7 +268,7 @@ class ElasticsearchService {
     }
   }
 
-  async getAggregations() {
+  async getAggregations () {
     try {
       const response = await this.client.search({
         index: this.indexName,
@@ -301,7 +301,7 @@ class ElasticsearchService {
     }
   }
 
-  async healthCheck() {
+  async healthCheck () {
     try {
       const response = await this.client.cluster.health();
       return {
@@ -319,4 +319,4 @@ class ElasticsearchService {
   }
 }
 
-export default ElasticsearchService; 
+export default ElasticsearchService;

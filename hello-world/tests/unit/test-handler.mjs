@@ -4,28 +4,28 @@ import { lambdaHandler } from '../../app.mjs';
 import { expect } from 'chai';
 
 describe('Tests index', function () {
-    it('verifies successful response', async () => {
-        // Set test environment to skip Elasticsearch initialization
-        process.env.NODE_ENV = 'test';
-        
-        const event = {
-            httpMethod: 'GET',
-            path: '/',
-            body: null,
-            queryStringParameters: null
-        };
-        const context = {};
+  it('verifies successful response', async () => {
+    // Set test environment to skip Elasticsearch initialization
+    process.env.NODE_ENV = 'test';
 
-        const result = await lambdaHandler(event, context);
+    const event = {
+      httpMethod: 'GET',
+      path: '/',
+      body: null,
+      queryStringParameters: null
+    };
+    const context = {};
 
-        expect(result).to.be.an('object');
-        expect(result.statusCode).to.equal(200);
-        expect(result.body).to.be.an('string');
+    const result = await lambdaHandler(event, context);
 
-        let response = JSON.parse(result.body);
+    expect(result).to.be.an('object');
+    expect(result.statusCode).to.equal(200);
+    expect(result.body).to.be.an('string');
 
-        expect(response).to.be.an('object');
-        expect(response.message).to.be.equal("Job Board API");
-        expect(response.version).to.be.equal("1.0.0");
-    });
+    const response = JSON.parse(result.body);
+
+    expect(response).to.be.an('object');
+    expect(response.message).to.be.equal('Job Board API');
+    expect(response.version).to.be.equal('1.0.0');
+  });
 });
