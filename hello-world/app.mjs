@@ -65,11 +65,13 @@ export const lambdaHandler = async (event, context) => {
   const { httpMethod, path, body, queryStringParameters } = event;
   
   try {
-    // Initialize Elasticsearch index on cold start
-    try {
-      await elasticsearchService.initializeIndex();
-    } catch (error) {
-      console.warn('Elasticsearch initialization failed, using in-memory storage:', error.message);
+    // Initialize Elasticsearch index on cold start (skip in test environment)
+    if (process.env.NODE_ENV !== 'test') {
+      try {
+        await elasticsearchService.initializeIndex();
+      } catch (error) {
+        console.warn('Elasticsearch initialization failed, using in-memory storage:', error.message);
+      }
     }
 
     const routeKey = `${httpMethod} ${path}`;

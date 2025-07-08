@@ -5,6 +5,9 @@ import { expect } from 'chai';
 
 describe('Tests index', function () {
     it('verifies successful response', async () => {
+        // Set test environment to skip Elasticsearch initialization
+        process.env.NODE_ENV = 'test';
+        
         const event = {
             httpMethod: 'GET',
             path: '/',
