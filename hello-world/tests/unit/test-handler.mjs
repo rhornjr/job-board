@@ -2,11 +2,18 @@
 
 import { lambdaHandler } from '../../app.mjs';
 import { expect } from 'chai';
-var event, context;
 
 describe('Tests index', function () {
     it('verifies successful response', async () => {
-        const result = await lambdaHandler(event, context)
+        const event = {
+            httpMethod: 'GET',
+            path: '/',
+            body: null,
+            queryStringParameters: null
+        };
+        const context = {};
+
+        const result = await lambdaHandler(event, context);
 
         expect(result).to.be.an('object');
         expect(result.statusCode).to.equal(200);
@@ -15,6 +22,7 @@ describe('Tests index', function () {
         let response = JSON.parse(result.body);
 
         expect(response).to.be.an('object');
-        expect(response.message).to.be.equal("hello world");
+        expect(response.message).to.be.equal("Job Board API");
+        expect(response.version).to.be.equal("1.0.0");
     });
 });
