@@ -17,11 +17,13 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: hello-world/package-lock.json
     
     - name: Install dependencies
       run: |
         cd hello-world
-        npm install
+        npm ci
     
     - name: Run tests
       run: |
@@ -45,11 +47,13 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: hello-world/package-lock.json
     
     - name: Install dependencies
       run: |
         cd hello-world
-        npm install
+        npm ci
     
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
