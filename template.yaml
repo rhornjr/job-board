@@ -27,6 +27,7 @@ Resources:
       CodeUri: hello-world/
       Handler: app.lambdaHandler
       Runtime: nodejs22.x
+      Role: !GetAtt JobBoardFunctionRole.Arn
       Architectures:
         - x86_64
       MemorySize: 512
@@ -96,7 +97,7 @@ Resources:
             Principal:
               AWS: "*"
             Action: "es:*"
-            Resource: !Sub "${ElasticsearchDomain}/*"
+            Resource: !Sub "arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/job-board-${AWS::StackName}/*"
       EncryptionAtRestOptions:
         Enabled: true
       NodeToNodeEncryptionOptions:
@@ -107,13 +108,12 @@ Resources:
         ES_APPLICATION_LOGS:
           CloudWatchLogsLogGroupArn: !GetAtt ElasticsearchLogGroup.Arn
           Enabled: true
-          LogType: ES_APPLICATION_LOGS
 
   # CloudWatch Log Group for Elasticsearch
   ElasticsearchLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/elasticsearch/${ElasticsearchDomain}"
+      LogGroupName: !Sub "/aws/elasticsearch/job-board-${AWS::StackName}"
       RetentionInDays: 7
 
   # IAM Role for Lambda to access Elasticsearch
@@ -141,7 +141,7 @@ Resources:
                   - es:ESHttpPost
                   - es:ESHttpDelete
                   - es:ESHttpHead
-                Resource: !Sub "${ElasticsearchDomain}/*"
+                Resource: !Sub "arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/job-board-${AWS::StackName}/*"
 
 Outputs:
   JobBoardApi:
